@@ -54,7 +54,7 @@ namespace ErrorManager {
                             // If kind of error not contian already in ErrorList, add to ErrorList
                             if (!book.ErrorList.Contains(cellValue)) {
                                 if(cellValue.Equals("表種")){
-                                    book.ErrorList.Add(cellValue +","+ range.Cells[i, dataColumn+ 1].Value2 + "<<"+ range.Cells[i, dataColumn + 2].Value2);
+                                    book.ErrorList.Add(cellValue +","+ range.Cells[i, dataColumn+ 1].Value2 + " << "+ range.Cells[i, dataColumn + 2].Value2);
                                 } else{
                                     book.ErrorList.Add(cellValue);
                                 }
@@ -86,6 +86,8 @@ namespace ErrorManager {
             }
         }
 
+        Excel.Range nrange;
+
         /// <summary>
         /// Create Excel file with data in list
         /// </summary>
@@ -94,15 +96,16 @@ namespace ErrorManager {
         /// <param name="path">Export Paht</param>
         public void ExportDataSetToExcel(List<ErrorListBook> list, Excel.Application ExcelApp, string path) {
             try {
-                //ExcelApp.Visible = false;
-                //ExcelApp.DisplayAlerts = false;
+                ExcelApp.Visible = false;
+                ExcelApp.DisplayAlerts = false;
                 workbook = ExcelApp.Workbooks.Add();
-
+                
                 //Create an Excel workbook instance and open it from the predefined location
                 worksheet = (Microsoft.Office.Interop.Excel.Worksheet)workbook.ActiveSheet;
                 worksheet.Name = "ErrorManger";
 
                 List<string> colList = new List<string>();
+                string ExportPath = path + @"/ErrorManger";
 
                 for (int j = 0; j < list.Count; j++) {
                     worksheet.Cells[j + 2, 1] = list[j].Name;
@@ -124,28 +127,42 @@ namespace ErrorManager {
                         
                     }   
                 }
-                worksheet.Application.ActiveWindow.FreezePanes = true;
+                
+                
                 worksheet.Cells[1, 1] = "テスト名";
                 for(int i=0; i<colList.Count; i++){
                     worksheet.Cells[1, i+2] = colList[i];
                 }
+                nrange = worksheet.UsedRange;
+                nrange.HorizontalAlignment = Microsoft.Office.Interop.Excel.XlHAlign.xlHAlignCenter;
+                nrange.Columns.AutoFit();
+                nrange.AutoFilter(1,"<>",XlAutoFilterOperator.xlOr, true);
+                ExcelApp.ActiveWindow.SplitRow = 1;
+                ExcelApp.ActiveWindow.SplitColumn = 1;
+                ExcelApp.ActiveWindow.FreezePanes = true;
 
-                workbook.SaveAs(path + @"/ErrorManager.csv", XlFileFormat.xlCSV);
-            } catch (Exception) {
-                
+
+                if(!Directory.Exists(ExportPath)){
+                    Directory.CreateDirectory(ExportPath);
+                }
+                workbook.SaveAs(ExportPath + @"/ErrorManager_"+ DateTime.Now.ToString("yyyy-dd-M_HH-mm-ss") +".xlsx");
+
+            } catch (Exception e) {
+                MessageBox.Show(e.Message, e.GetType().ToString());
+            }finally{
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+
+                //release com objects to fully kill excel process from running in the background
+                Marshal.ReleaseComObject(worksheet);
+
+                //close and release
+                workbook.Close();
+                Marshal.ReleaseComObject(workbook);
+                //quit and release
+                ExcelApp.Quit();
+                Marshal.ReleaseComObject(ExcelApp);
             }
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-
-            //release com objects to fully kill excel process from running in the background
-            Marshal.ReleaseComObject(worksheet);
-
-            //close and release
-            workbook.Close();
-            Marshal.ReleaseComObject(workbook);
-            //quit and release
-            ExcelApp.Quit();
-            Marshal.ReleaseComObject(ExcelApp);
         }
     }
 }
