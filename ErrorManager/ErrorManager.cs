@@ -6,6 +6,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -13,22 +14,26 @@ namespace ErrorManager {
     public partial class ErrorManager : Form {
         public ErrorManager() {
             InitializeComponent();
-            lblCondition.Text = "";
+            lblProgress.Text = "";
         }
 
         List<string> files;
 
         private void btnStart_Click(object sender, EventArgs e) {
             if(!backgroundWorker.IsBusy && !tbErrorPath.Text.Equals(string.Empty)){
-                lblCondition.Text = "";
+                lblProgress.Text = "Starting...";
                 backgroundWorker.RunWorkerAsync();
             }
         }
 
         private void backgroundWorker_DoWork(object sender, DoWorkEventArgs e) {
-            files = Directory.GetFiles(tbErrorPath.Text).ToList();
+            Regex reg = new Regex(@"(\d+_\w+_\d+_Error)");
+            files = Directory.GetFiles(tbErrorPath.Text).Where(path => reg.IsMatch(path)).ToList();
             ErrorListBook book = new ErrorListBook();
-            book.GetErrorListFormExcel(files, tbErrorPath.Text, sender as BackgroundWorker);
+            Boolean cancel = book.GetErrorListFormExcel(files, tbErrorPath.Text, sender as BackgroundWorker);
+            if(cancel) {
+                e.Cancel = true;
+            }
         }
 
         private void backgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e) {
@@ -36,20 +41,27 @@ namespace ErrorManager {
         }
 
         private void btnCancel_Click(object sender, EventArgs e) {
-            backgroundWorker.CancelAsync();
-            lblCondition.Text = "User Cancel!";
+            if (backgroundWorker.WorkerSupportsCancellation == true) {
+                // Cancel the asynchronous operation.
+                backgroundWorker.CancelAsync();
+            }
         }
 
         private void backgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e) {
-            if(lblCondition.Text.Equals("")){
-                lblCondition.Text = "File Exported to your Path Successfully!";
+           
+            if (e.Cancelled == true) {
+                lblProgress.Text = "Canceled!";
+            } else if (e.Error != null) {
+                lblProgress.Text = "Error: " + e.Error.Message;
+            } else {
+                lblProgress.Text = "File Exported to your Path Successfully!";
             }
         }
 
         private void tbErrorPath_MouseClick(object sender, MouseEventArgs e) {
             using (FolderBrowserDialog fbd = new FolderBrowserDialog()){
                 fbd.SelectedPath = @"C:\UnitTest\S";
-                if (fbd.ShowDialog() == DialogResult.OK) {
+                if (fbd.ShowDialog(this) == DialogResult.OK) {
                     tbErrorPath.Text = fbd.SelectedPath;
                 }
             }
