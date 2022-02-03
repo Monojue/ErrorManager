@@ -110,7 +110,7 @@
             this.MaximumSize = new System.Drawing.Size(1000, 200);
             this.MinimumSize = new System.Drawing.Size(500, 140);
             this.Name = "ErrorManager";
-            this.Text = "ErrorManager";
+            this.Text = "ErrorManager v1.1";
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
             this.ResumeLayout(false);

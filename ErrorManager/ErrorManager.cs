@@ -27,7 +27,7 @@ namespace ErrorManager {
         }
 
         private void backgroundWorker_DoWork(object sender, DoWorkEventArgs e) {
-            Regex reg = new Regex(@"(\d+_\w+_\d+_Error)");
+            Regex reg = new Regex(@"(^((?!\d{12}).)*$)");
             files = Directory.GetFiles(tbErrorPath.Text).Where(path => reg.IsMatch(path)).ToList();
             ErrorListBook book = new ErrorListBook();
             Boolean cancel = book.GetErrorListFormExcel(files, tbErrorPath.Text, sender as BackgroundWorker);
